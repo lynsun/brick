@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>打转块</title>
+<script type="text/javascript" src="js/util.js"></script>
+<script type="text/javascript" src="js/Playground.js"></script>
+<script type="text/javascript" src="js/Board.js"></script>
+<script type="text/javascript" src="js/Bullet.js"></script>
+<script type="text/javascript" src="js/Ball.js"></script>
+<script type="text/javascript" src="js/Brick.js"></script>
+<script type="text/javascript">
+gameManager["GUID"]=0;
+//enterFrame事件监听器
+gameManager["enterFrameListener"]=function(){
+	var ctx=gameManager["ctx"];
+	var pg=gameManager["playground"];
+    var board=gameManager["board"];
+	var ball=gameManager["ball"];
+	
+	board.calculateSpeed();//计算板速度
+	board.transform();//侦测板长度变化
+	
+	//碰撞检测
+	pg.hitTestPlayground(ball);
+	ball.hitTestBoard();
+	ball.hitTestBricks();
+	
+	var bullets=gameManager["bullets"]
+	if(bullets.length>0){
+	    for(var i=0;i<bullets.length;i++){
+	        var bullet=bullets[i];
+			if(bullet.exist){
+			      bullets[i].move();
+			}else{
+			      bullets.splice(i,1);
+				  i--;
+			}
+	    }
+	}
+
+	
+	
+	ctx.clearRect(0,0,gameManager["stageWidth"],gameManager["stageHeight"]);
+	ctx.save();
+	
+	//绘制场景
+	pg.draw(ctx);
+	//绘制砖块
+	Brick.drawAll(ctx);
+	//绘制平板
+	board.draw(ctx);
+	//绘制小球
+	ball.draw(ctx);
+	//绘制子弹
+	Bullet.drawAll(ctx);
+	ctx.restore();
+	
+	if(ball.moveable){
+	    ball.move();
+	}
+}
+
+window.onload=function(){
+   gameManager["frameRate"]=100;
+   
+   //游戏初始化
+   gameManager.init=function(){
+       //场景初始化
+   var pg=new Playground({
+       id:'container',
+	   width:480,
+	   height:320
+   });
+   pg.renderTo();
+   gameManager["playground"]=pg;
+   
+   //获取canvas的上下文对象
+   var canvas=pg.canvas;
+   var ctx=canvas.getContext("2d");
+   gameManager["ctx"]=ctx;
+   
+   gameManager["stageWidth"]=pg.width;
+   gameManager["stageHeight"]=pg.height;
+   
+   //砖块初始化
+   gameManager["brickRows"]=5;
+   gameManager["brickCols"]=10;
+   gameManager["brickType"]={
+        normal:"normal",
+        transform:"transform",
+        attach:"attach",
+		shoot:"shoot"
+   }
+   gameManager["brickImage"]="images/brick.png";
+   Brick.initBricks();
+   
+   //新建平板对象
+   var board=new Board({
+       x:gameManager["stageWidth"]/2-50,
+	   y:gameManager["stageHeight"]-20,
+	   width:100,
+	   height:20,
+	   percentage:0.2//平板改变小球速度的系数
+   });
+   gameManager["board"]=board;
+   gameManager["bullets"]=[];
+   
+   //新建小球对象
+   var ball=new Ball({
+      x:gameManager["stageWidth"]/2,
+	  y:gameManager["stageHeight"]-board.height-3,
+	  radius:3,
+	  vx:1,
+	  vy:-1
+   });
+   gameManager["ball"]=ball;
+   //小球默认的速度
+   gameManager["ballDefaultVx"]=1;
+   gameManager["ballDefaultVy"]=-2;
+  }
+   
+
+   //播放音乐
+   gameManager.playMusic=function(fileName,isLoop){
+          
+   }
+   //开始游戏
+   gameManager.start=function(){
+	   gameManager["timer"]=setInterval(gameManager["enterFrameListener"],1000/gameManager["frameRate"]);
+   }
+   //暂停游戏
+   gameManager.pause=function(){
+       if(gameManager["timer"]){
+	       clearInterval(gameManager["timer"]);
+	   }
+   }
+   //游戏失败
+   gameManager.gameOver=function(){
+       gameManager.pause();
+	   gameManager["playground"].showDialog();
+   }
+   //重新开始
+   gameManager.restart=function(){
+	   document.body.removeChild(gameManager["playground"].elem);
+	   gameManager.init();
+	   gameManager.start();
+   }
+   gameManager.init();
+   gameManager["enterFrameListener"]();
+   
+   var btn_start=document.getElementById("start");
+   var btn_pause=document.getElementById("pause");
+   btn_start.addEventListener("click",function(){
+        gameManager.start();
+   },false);
+   btn_pause.addEventListener("click",function(){
+        gameManager.pause();
+   },false); 
+}
+</script>
+</head>
+<body>
+<input type="button" id="start" value="PLAY"/>
+<input type="button" id="pause" value="PAUSE"/>
+
+</body>
+</html>
+
